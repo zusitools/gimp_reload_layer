@@ -11,7 +11,10 @@ def image_reload_layer(img, drawable):
   active_layer_name = pdb.gimp_item_get_name(active_layer_id)
 
   # Try to interpret the layer name as a relative or absolute file path.
-  layer_path = active_layer_name
+  # Ignore everything after the first '#' character.
+  split_layer_name = active_layer_name.split("#", 1)
+  layer_path = split_layer_name[0].strip()
+  extras = split_layer_name[1] if len(split_layer_name) > 1 else ""
 
   if not os.path.isabs(layer_path):
     image_filename = pdb.gimp_image_get_filename(img)
@@ -30,7 +33,13 @@ def image_reload_layer(img, drawable):
 
     # Insert the new layer above the existing one.
     pdb.gimp_image_insert_layer(img, new_layer_id, None, -1)
- 
+
+    # Apply special effects (mirroring).
+    if "flipH" in extras:
+      new_layer_id = pdb.gimp_item_transform_flip_simple(new_layer_id, ORIENTATION_HORIZONTAL, True, 0)
+    if "flipV" in extras:
+      new_layer_id = pdb.gimp_item_transform_flip_simple(new_layer_id, ORIENTATION_VERTICAL, True, 0)
+
     # Copy layer data.
     pdb.gimp_item_set_linked(new_layer_id, pdb.gimp_item_get_linked(active_layer_id))
     pdb.gimp_layer_set_lock_alpha(new_layer_id, pdb.gimp_layer_get_lock_alpha(active_layer_id))

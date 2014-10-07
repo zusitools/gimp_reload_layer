@@ -58,6 +58,7 @@ def replace_layer(img, active_layer_id, pasted_layer_id):
       label.show()
       dialog.add_button("Resize horizontally (new size: %dx%d)" % (calculated_width, height), 1)
       dialog.add_button("Resize vertically (new size: %dx%d)" % (width, calculated_height), 2)
+      dialog.add_button("Keep dimensions", 3)
       dialog.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
       response = dialog.run()
       dialog.destroy()
@@ -66,6 +67,8 @@ def replace_layer(img, active_layer_id, pasted_layer_id):
         width = calculated_width
       elif response == 2:
         height = calculated_height
+      elif response == 3:
+        pass
       else:
         return
 

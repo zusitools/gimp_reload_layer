@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 from gimpfu import *
+import gtk
 import os
 
-def replace_layer(img, old_layer_id, new_layer_id):
-    """Replaces the layer old_layer_id by the layer new_layer_id, preserving the old layer's
-    settings such as offset, opacity, and layer mask."""
+def copy_layer_data_and_remove_old(img, old_layer_id, new_layer_id):
+    """Copys the settings from the layer old_layer_id to the layer new_layer_id
+    and removes the old layer."""
 
     # Copy layer data.
     pdb.gimp_item_set_linked(new_layer_id, pdb.gimp_item_get_linked(old_layer_id))
@@ -30,6 +31,42 @@ def replace_layer(img, old_layer_id, new_layer_id):
 
     pdb.gimp_displays_flush()
 
+def replace_layer(img, active_layer_id, pasted_layer_id):
+    """Replaces the layer active_layer_id by the layer pasted_layer_id, optionally resizing it to preserve
+    aspect ratio and preserving the old layer's settings such as offset, opacity, and layer mask."""
+
+    (width, height) = (pdb.gimp_drawable_width(active_layer_id), pdb.gimp_drawable_height(active_layer_id))
+    (pasted_width, pasted_height) = (pdb.gimp_drawable_width(pasted_layer_id), pdb.gimp_drawable_height(pasted_layer_id))
+    if (pasted_width == 0 or pasted_height == 0):
+       return
+    calculated_width = int(round(float(height)/pasted_height * pasted_width))
+    calculated_height = int(round(float(width)/pasted_width * pasted_height))
+
+    # Warn the user if the new layer's aspect ratio do not match that of the old layer.
+    if (calculated_width != width and calculated_height != height):
+      label = gtk.Label("The aspect ratio of the clipboard contents does not match the aspect ratio of the currently selected layer."
+        + os.linesep + "Clipboard content size is %dx%d, active layer size is %dx%d." % (pasted_width, pasted_height, width, height))
+      dialog = gtk.Dialog("New aspect ratio", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT | gtk.DIALOG_NO_SEPARATOR, None)
+      dialog.vbox.pack_start(label)
+      label.show()
+      dialog.add_button("Resize horizontally (new size: %dx%d)" % (calculated_width, height), 1)
+      dialog.add_button("Resize vertically (new size: %dx%d)" % (width, calculated_height), 2)
+      dialog.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
+      response = dialog.run()
+      dialog.destroy()
+
+      if response == 1:
+        width = calculated_width
+      elif response == 2:
+        height = calculated_height
+      else:
+        return
+
+    # Insert the new layer above the existing one.
+    pdb.gimp_image_insert_layer(img, pasted_layer_id, None, -1)
+    pdb.gimp_layer_scale(pasted_layer_id, width, height, True)
+
+    copy_layer_data_and_remove_old(img, active_layer_id, pasted_layer_id)
 
 def image_reload_layer(img, drawable):
   active_layer_id = pdb.gimp_image_get_active_layer(img)
@@ -59,9 +96,6 @@ def image_reload_layer(img, drawable):
   try:
     new_layer_id = pdb.gimp_file_load_layer(img, layer_path, run_mode = 1)
 
-    # Insert the new layer above the existing one.
-    pdb.gimp_image_insert_layer(img, new_layer_id, None, -1)
-
     # Apply special effects (mirroring).
     if "flipH" in extras:
       new_layer_id = pdb.gimp_item_transform_flip_simple(new_layer_id, ORIENTATION_HORIZONTAL, True, 0)
@@ -69,30 +103,22 @@ def image_reload_layer(img, drawable):
       new_layer_id = pdb.gimp_item_transform_flip_simple(new_layer_id, ORIENTATION_VERTICAL, True, 0)
 
     replace_layer(img, active_layer_id, new_layer_id)
-
   finally:
     pdb.gimp_image_undo_group_end(img)
 
-
 def image_replace_layer_with_clipboard(img, drawable):
-  active_layer = pdb.gimp_image_get_active_layer(img)
-  if active_layer == -1:
+  active_layer_id = pdb.gimp_image_get_active_layer(img)
+  if active_layer_id == -1:
     pdb.gimp_message("Please select a layer.")
     return
 
   pdb.gimp_image_undo_group_start(img)
   pdb.gimp_context_set_interpolation(INTERPOLATION_LANCZOS)
   try:
-    (width, height) = (pdb.gimp_drawable_width(active_layer), pdb.gimp_drawable_height(active_layer))
     tmp_image = pdb.gimp_edit_paste_as_new(img)
     drawable = pdb.gimp_image_get_active_drawable(tmp_image)
-    tmp_layer = pdb.gimp_layer_new_from_drawable(drawable, img)
-    pdb.gimp_image_insert_layer(img, tmp_layer, None, -1)
-
-    # TODO: Warn the user if the new layer's aspect ratio do not match that of the old layer.
-    pdb.gimp_layer_scale(tmp_layer, width, height, True)
-
-    replace_layer(img, active_layer, tmp_layer)
+    new_layer_id = pdb.gimp_layer_new_from_drawable(drawable, img)
+    replace_layer(img, active_layer_id, new_layer_id)
   finally:
     pdb.gimp_image_undo_group_end(img)
 

@@ -13,7 +13,14 @@ def copy_layer_data_and_remove_old(img, old_layer_id, new_layer_id):
     pdb.gimp_layer_set_lock_alpha(new_layer_id, pdb.gimp_layer_get_lock_alpha(old_layer_id))
     layer_mask = pdb.gimp_layer_get_mask(old_layer_id)
     if layer_mask != None:
-      pdb.gimp_layer_add_mask(new_layer_id, pdb.gimp_channel_copy(pdb.gimp_layer_get_mask(old_layer_id)))
+      (old_width, old_height) = (pdb.gimp_drawable_width(old_layer_id), pdb.gimp_drawable_height(old_layer_id))
+      (new_width, new_height) = (pdb.gimp_drawable_width(new_layer_id), pdb.gimp_drawable_height(new_layer_id))
+      if old_width != new_width or old_height != new_height:
+        # Resize the old layer; the mask will get resized with it.
+        pdb.gimp_layer_resize(old_layer_id, new_width, new_height, 0, 0)
+
+      new_layer_mask = pdb.gimp_channel_copy(layer_mask)
+      pdb.gimp_layer_add_mask(new_layer_id, new_layer_mask)
       pdb.gimp_layer_set_apply_mask(new_layer_id, pdb.gimp_layer_get_apply_mask(old_layer_id))
       pdb.gimp_layer_set_edit_mask(new_layer_id, pdb.gimp_layer_get_edit_mask(old_layer_id))
       pdb.gimp_layer_set_show_mask(new_layer_id, pdb.gimp_layer_get_show_mask(old_layer_id))

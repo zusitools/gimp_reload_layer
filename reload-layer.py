@@ -38,7 +38,15 @@ def copy_layer_data_and_remove_old(img, old_layer_id, new_layer_id):
 
     pdb.gimp_displays_flush()
 
-def replace_layer(img, active_layer_id, pasted_layer_id):
+def apply_effects(layer, effect_spec):
+    # Apply special effects (mirroring).
+    if "flipH" in effect_spec:
+        layer = pdb.gimp_item_transform_flip_simple(layer, ORIENTATION_HORIZONTAL, True, 0)
+    if "flipV" in effect_spec:
+        layer = pdb.gimp_item_transform_flip_simple(layer, ORIENTATION_VERTICAL, True, 0)
+    return layer
+
+def replace_layer(img, active_layer_id, pasted_layer_id, effects):
     """Replaces the layer active_layer_id by the layer pasted_layer_id, optionally resizing it to preserve
     aspect ratio and preserving the old layer's settings such as offset, opacity, and layer mask."""
 
@@ -75,8 +83,10 @@ def replace_layer(img, active_layer_id, pasted_layer_id):
     # Insert the new layer above the existing one.
     pdb.gimp_image_insert_layer(img, pasted_layer_id, None, -1)
     pdb.gimp_layer_scale(pasted_layer_id, width, height, True)
+    pasted_layer_id = apply_effects(pasted_layer_id, effects)
 
     copy_layer_data_and_remove_old(img, active_layer_id, pasted_layer_id)
+
 
 def image_reload_layer(img, drawable):
   active_layer_id = pdb.gimp_image_get_active_layer(img)
@@ -105,14 +115,7 @@ def image_reload_layer(img, drawable):
   pdb.gimp_image_undo_group_start(img)
   try:
     new_layer_id = pdb.gimp_file_load_layer(img, layer_path, run_mode = 1)
-
-    # Apply special effects (mirroring).
-    if "flipH" in extras:
-      new_layer_id = pdb.gimp_item_transform_flip_simple(new_layer_id, ORIENTATION_HORIZONTAL, True, 0)
-    if "flipV" in extras:
-      new_layer_id = pdb.gimp_item_transform_flip_simple(new_layer_id, ORIENTATION_VERTICAL, True, 0)
-
-    replace_layer(img, active_layer_id, new_layer_id)
+    replace_layer(img, active_layer_id, new_layer_id, extras)
   finally:
     pdb.gimp_image_undo_group_end(img)
 
@@ -122,13 +125,17 @@ def image_replace_layer_with_clipboard(img, drawable):
     pdb.gimp_message("Please select a layer.")
     return
 
+  active_layer_name = pdb.gimp_item_get_name(active_layer_id)
+  split_layer_name = active_layer_name.split("#", 1)
+  extras = split_layer_name[1] if len(split_layer_name) > 1 else ""
+
   pdb.gimp_image_undo_group_start(img)
   pdb.gimp_context_set_interpolation(INTERPOLATION_LANCZOS)
   try:
     tmp_image = pdb.gimp_edit_paste_as_new(img)
     drawable = pdb.gimp_image_get_active_drawable(tmp_image)
     new_layer_id = pdb.gimp_layer_new_from_drawable(drawable, img)
-    replace_layer(img, active_layer_id, new_layer_id)
+    replace_layer(img, active_layer_id, new_layer_id, extras)
   finally:
     pdb.gimp_image_undo_group_end(img)
 

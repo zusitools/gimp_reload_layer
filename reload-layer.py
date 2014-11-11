@@ -68,6 +68,7 @@ def replace_layer(img, active_layer_id, pasted_layer_id, effects):
       dialog.add_button("Resize vertically (new size: %dx%d)" % (width, calculated_height), 2)
       dialog.add_button("Keep dimensions", 3)
       dialog.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
+      dialog.set_default_response(3)
       response = dialog.run()
       dialog.destroy()
 

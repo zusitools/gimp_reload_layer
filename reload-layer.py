@@ -40,6 +40,13 @@ def copy_layer_data_and_remove_old(img, old_layer_id, new_layer_id):
 
 def apply_effects(layer, effect_spec):
     # Apply special effects (mirroring).
+    if "rotR" in effect_spec:
+        layer = pdb.gimp_item_transform_rotate_simple(layer, ROTATE_90, True, 0, 0)
+    elif "rotL" in effect_spec:
+        layer = pdb.gimp_item_transform_rotate_simple(layer, ROTATE_270, True, 0, 0)
+    elif "rot180" in effect_spec:
+        layer = pdb.gimp_item_transform_rotate_simple(layer, ROTATE_180, True, 0, 0)
+
     if "flipH" in effect_spec:
         layer = pdb.gimp_item_transform_flip_simple(layer, ORIENTATION_HORIZONTAL, True, 0)
     if "flipV" in effect_spec:
@@ -51,7 +58,10 @@ def replace_layer(img, active_layer_id, pasted_layer_id, effects):
     aspect ratio and preserving the old layer's settings such as offset, opacity, and layer mask."""
 
     (width, height) = (pdb.gimp_drawable_width(active_layer_id), pdb.gimp_drawable_height(active_layer_id))
-    (pasted_width, pasted_height) = (pdb.gimp_drawable_width(pasted_layer_id), pdb.gimp_drawable_height(pasted_layer_id))
+    if "rotR" not in effects and "rotL" not in effects:
+      (pasted_width, pasted_height) = (pdb.gimp_drawable_width(pasted_layer_id), pdb.gimp_drawable_height(pasted_layer_id))
+    else:
+      (pasted_height, pasted_width) = (pdb.gimp_drawable_width(pasted_layer_id), pdb.gimp_drawable_height(pasted_layer_id))
     if (pasted_width == 0 or pasted_height == 0):
        return
     calculated_width = int(round(float(height)/pasted_height * pasted_width))
@@ -83,8 +93,8 @@ def replace_layer(img, active_layer_id, pasted_layer_id, effects):
 
     # Insert the new layer above the existing one.
     pdb.gimp_image_insert_layer(img, pasted_layer_id, None, -1)
-    pdb.gimp_layer_scale(pasted_layer_id, width, height, True)
     pasted_layer_id = apply_effects(pasted_layer_id, effects)
+    pdb.gimp_layer_scale(pasted_layer_id, width, height, True)
 
     copy_layer_data_and_remove_old(img, active_layer_id, pasted_layer_id)
 

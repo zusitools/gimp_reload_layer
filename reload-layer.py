@@ -58,7 +58,7 @@ def replace_layer(img, active_layer_id, pasted_layer_id, effects):
     calculated_height = int(round(float(width)/pasted_width * pasted_height))
 
     # Warn the user if the new layer's aspect ratio do not match that of the old layer.
-    if (calculated_width != width and calculated_height != height):
+    if calculated_width != width and calculated_height != height and "stretch" not in effects:
       label = gtk.Label("The aspect ratio of the clipboard contents does not match the aspect ratio of the currently selected layer."
         + os.linesep + "Clipboard content size is %dx%d, active layer size is %dx%d." % (pasted_width, pasted_height, width, height))
       dialog = gtk.Dialog("New aspect ratio", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT | gtk.DIALOG_NO_SEPARATOR, None)

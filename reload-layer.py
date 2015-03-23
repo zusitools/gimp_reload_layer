@@ -3,6 +3,7 @@
 from gimpfu import *
 import gtk
 import os
+import re
 
 def copy_layer_data_and_remove_old(img, old_layer_id, new_layer_id):
     """Copys the settings from the layer old_layer_id to the layer new_layer_id
@@ -89,10 +90,12 @@ def replace_layer(img, active_layer_id, pasted_layer_id, effects):
       elif response == 3:
         pass
       else:
+        pdb.gimp_image_remove_layer(img, pasted_layer_id)
         return
 
     # Insert the new layer above the existing one.
-    pdb.gimp_image_insert_layer(img, pasted_layer_id, None, -1)
+    old_layer_pos = pdb.gimp_image_get_item_position(img, active_layer_id)
+    pdb.gimp_image_reorder_item(img, pasted_layer_id, active_layer_id.parent, old_layer_pos)
     pasted_layer_id = apply_effects(pasted_layer_id, effects)
     pdb.gimp_layer_scale(pasted_layer_id, width, height, True)
 
@@ -107,10 +110,11 @@ def image_reload_layer(img, drawable):
   active_layer_name = pdb.gimp_item_get_name(active_layer_id)
 
   # Try to interpret the layer name as a relative or absolute file path.
-  # Ignore everything after the first '#' character.
-  split_layer_name = active_layer_name.split("#", 1)
-  layer_path = split_layer_name[0].strip()
-  extras = split_layer_name[1] if len(split_layer_name) > 1 else ""
+  # Ignore everything after the first '#' or '@' character.
+  match = re.match(r'([^#@]*)(@[^#]*)?(#.*)?', active_layer_name)
+  layer_path = match.group(1).strip()
+  selection = match.group(2)[1:].strip() if match.group(2) is not None else ""
+  extras = match.group(3) if match.group(3) is not None else ""
 
   if not os.path.isabs(layer_path):
     image_filename = pdb.gimp_image_get_filename(img)
@@ -125,8 +129,22 @@ def image_reload_layer(img, drawable):
 
   pdb.gimp_image_undo_group_start(img)
   try:
-    new_layer_id = pdb.gimp_file_load_layer(img, layer_path, run_mode = 1)
-    replace_layer(img, active_layer_id, new_layer_id, extras)
+    loaded_img = pdb.gimp_file_load(layer_path, layer_path)
+    if len(selection):
+      paths = [p for p in loaded_img.vectors if p.name == selection]
+      if not len(paths):
+        pdb.gimp_message("\"%s\": Path not found" % selection)
+        pdb.gimp_image_delete(loaded_img)
+        return
+      pdb.gimp_image_select_item(loaded_img, CHANNEL_OP_REPLACE, paths[0])
+    else:
+      pdb.gimp_selection_none(loaded_img)
+    pdb.gimp_edit_named_copy_visible(loaded_img, "ReloadLayerTemp")
+    new_layer = pdb.gimp_edit_named_paste(active_layer_id, "ReloadLayerTemp", False)
+    pdb.gimp_floating_sel_to_layer(new_layer)
+    replace_layer(img, active_layer_id, new_layer, extras)
+    pdb.gimp_buffer_delete("ReloadLayerTemp")
+    pdb.gimp_image_delete(loaded_img)
   finally:
     pdb.gimp_image_undo_group_end(img)
 
@@ -146,6 +164,7 @@ def image_replace_layer_with_clipboard(img, drawable):
     tmp_image = pdb.gimp_edit_paste_as_new(img)
     drawable = pdb.gimp_image_get_active_drawable(tmp_image)
     new_layer_id = pdb.gimp_layer_new_from_drawable(drawable, img)
+    pdb.gimp_image_insert_layer(img, new_layer_id, None, 0)
     replace_layer(img, active_layer_id, new_layer_id, extras)
   finally:
     pdb.gimp_image_undo_group_end(img)

@@ -107,6 +107,12 @@ def image_reload_layer(img, drawable):
   if active_layer_id == -1:
     pdb.gimp_message("Please select a layer.")
     return
+  image_reload_layer_rec(img, active_layer_id)
+
+def image_reload_layer_rec(img, active_layer_id):
+  for c in active_layer_id.children:
+    image_reload_layer_rec(img, c)
+
   active_layer_name = pdb.gimp_item_get_name(active_layer_id)
 
   # Try to interpret the layer name as a relative or absolute file path.

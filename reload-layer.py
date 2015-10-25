@@ -6,7 +6,7 @@ import os
 import re
 
 def copy_layer_data_and_remove_old(img, old_layer_id, new_layer_id):
-    """Copys the settings from the layer old_layer_id to the layer new_layer_id
+    """Copies the settings from the layer old_layer_id to the layer new_layer_id
     and removes the old layer."""
 
     # Copy layer data.
@@ -19,9 +19,12 @@ def copy_layer_data_and_remove_old(img, old_layer_id, new_layer_id):
       if old_width != new_width or old_height != new_height:
         # Resize the old layer; the mask will get resized with it.
         pdb.gimp_layer_resize(old_layer_id, new_width, new_height, 0, 0)
+        layer_mask = pdb.gimp_layer_get_mask(old_layer_id)
 
-      new_layer_mask = pdb.gimp_channel_copy(layer_mask)
+      pdb.gimp_image_select_item(img, CHANNEL_OP_REPLACE, layer_mask)
+      new_layer_mask = pdb.gimp_layer_create_mask(new_layer_id, ADD_SELECTION_MASK)
       pdb.gimp_layer_add_mask(new_layer_id, new_layer_mask)
+
       pdb.gimp_layer_set_apply_mask(new_layer_id, pdb.gimp_layer_get_apply_mask(old_layer_id))
       pdb.gimp_layer_set_edit_mask(new_layer_id, pdb.gimp_layer_get_edit_mask(old_layer_id))
       pdb.gimp_layer_set_show_mask(new_layer_id, pdb.gimp_layer_get_show_mask(old_layer_id))
@@ -77,7 +80,7 @@ def replace_layer(img, active_layer_id, pasted_layer_id, effects):
       label.show()
       dialog.add_button("Resize horizontally (new size: %dx%d)" % (calculated_width, height), 1)
       dialog.add_button("Resize vertically (new size: %dx%d)" % (width, calculated_height), 2)
-      dialog.add_button("Keep dimensions", 3)
+      dialog.add_button("Keep dimensions (stretch)", 3)
       dialog.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
       dialog.set_default_response(3)
       response = dialog.run()
@@ -133,7 +136,11 @@ def image_reload_layer_rec(img, active_layer_id):
     pdb.gimp_message(layer_path + ": File not found.")
     return
 
+  pdb.gimp_context_push()
+
   pdb.gimp_image_undo_group_start(img)
+  sel = pdb.gimp_selection_save(img)
+  pdb.gimp_selection_none(img)
   try:
     loaded_img = pdb.gimp_file_load(layer_path, layer_path)
     if len(selection):
@@ -152,7 +159,9 @@ def image_reload_layer_rec(img, active_layer_id):
     pdb.gimp_buffer_delete("ReloadLayerTemp")
     pdb.gimp_image_delete(loaded_img)
   finally:
+    pdb.gimp_image_select_item(img, CHANNEL_OP_REPLACE, sel)
     pdb.gimp_image_undo_group_end(img)
+    pdb.gimp_context_pop()
 
 def image_replace_layer_with_clipboard(img, drawable):
   active_layer_id = pdb.gimp_image_get_active_layer(img)
@@ -164,8 +173,12 @@ def image_replace_layer_with_clipboard(img, drawable):
   split_layer_name = active_layer_name.split("#", 1)
   extras = split_layer_name[1] if len(split_layer_name) > 1 else ""
 
-  pdb.gimp_image_undo_group_start(img)
+  pdb.gimp_context_push()
   pdb.gimp_context_set_interpolation(INTERPOLATION_LANCZOS)
+
+  pdb.gimp_image_undo_group_start(img)
+  sel = pdb.gimp_selection_save(img)
+  pdb.gimp_selection_none(img)
   try:
     tmp_image = pdb.gimp_edit_paste_as_new(img)
     drawable = pdb.gimp_image_get_active_drawable(tmp_image)
@@ -173,7 +186,9 @@ def image_replace_layer_with_clipboard(img, drawable):
     pdb.gimp_image_insert_layer(img, new_layer_id, None, 0)
     replace_layer(img, active_layer_id, new_layer_id, extras)
   finally:
+    pdb.gimp_image_select_item(img, CHANNEL_OP_REPLACE, sel)
     pdb.gimp_image_undo_group_end(img)
+    pdb.gimp_context_pop()
 
 
 register(

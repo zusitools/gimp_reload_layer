@@ -10,6 +10,9 @@ def copy_layer_data_and_remove_old(img, old_layer_id, new_layer_id):
     and removes the old layer."""
 
     # Copy layer data.
+    offsets = pdb.gimp_drawable_offsets(old_layer_id)
+    pdb.gimp_layer_set_offsets(new_layer_id, offsets[0], offsets[1])
+
     pdb.gimp_item_set_linked(new_layer_id, pdb.gimp_item_get_linked(old_layer_id))
     pdb.gimp_layer_set_lock_alpha(new_layer_id, pdb.gimp_layer_get_lock_alpha(old_layer_id))
     layer_mask = pdb.gimp_layer_get_mask(old_layer_id)
@@ -32,8 +35,6 @@ def copy_layer_data_and_remove_old(img, old_layer_id, new_layer_id):
     pdb.gimp_layer_set_opacity(new_layer_id, pdb.gimp_layer_get_opacity(old_layer_id))
     pdb.gimp_item_set_tattoo(new_layer_id, pdb.gimp_item_get_tattoo(old_layer_id))
     pdb.gimp_layer_set_visible(new_layer_id, pdb.gimp_layer_get_visible(old_layer_id))
-    offsets = pdb.gimp_drawable_offsets(old_layer_id)
-    pdb.gimp_layer_set_offsets(new_layer_id, offsets[0], offsets[1])
 
     # Delete the old layer and rename the new one.
     old_layer_name = pdb.gimp_item_get_name(old_layer_id)

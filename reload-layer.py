@@ -104,6 +104,28 @@ def replace_layer(img, active_layer_id, pasted_layer_id, effects):
 
     copy_layer_data_and_remove_old(img, active_layer_id, pasted_layer_id)
 
+def get_layer_file_data(img, layer_id):
+  # Try to interpret the layer name as a relative or absolute file path.
+  # Ignore everything after the first '#' or '@' character.
+  match = re.match(r'([^#@]*)(@[^#]*)?(#.*)?', pdb.gimp_item_get_name(layer_id))
+  layer_path = match.group(1).strip()
+  layer_path_msg = ""
+  selection = match.group(2)[1:].strip() if match.group(2) is not None else ""
+  extras = match.group(3) if match.group(3) is not None else ""
+
+  if not os.path.isabs(layer_path):
+    image_filename = pdb.gimp_image_get_filename(img)
+    if image_filename == None:
+      layer_path = None
+      layer_path_msg = "Layer name is not an absolute path, and the image has no file name."
+    layer_path = os.path.join(os.path.dirname(image_filename), layer_path)
+
+  if not os.path.isfile(layer_path):
+    layer_path_msg = "{}: File not found".format(layer_path)
+    layer_path = None
+
+  return (layer_path, layer_path_msg, selection, extras)
+
 
 def image_reload_layer(img, drawable):
   active_layer_id = pdb.gimp_image_get_active_layer(img)
@@ -116,24 +138,9 @@ def image_reload_layer_rec(img, active_layer_id):
   for c in active_layer_id.children:
     image_reload_layer_rec(img, c)
 
-  active_layer_name = pdb.gimp_item_get_name(active_layer_id)
-
-  # Try to interpret the layer name as a relative or absolute file path.
-  # Ignore everything after the first '#' or '@' character.
-  match = re.match(r'([^#@]*)(@[^#]*)?(#.*)?', active_layer_name)
-  layer_path = match.group(1).strip()
-  selection = match.group(2)[1:].strip() if match.group(2) is not None else ""
-  extras = match.group(3) if match.group(3) is not None else ""
-
-  if not os.path.isabs(layer_path):
-    image_filename = pdb.gimp_image_get_filename(img)
-    if image_filename == None:
-      pdb.gimp_message("Layer name is not an absolute path, and the image has no file name.")
-      return
-    layer_path = os.path.join(os.path.dirname(image_filename), layer_path)
-
-  if not os.path.isfile(layer_path):
-    pdb.gimp_message(layer_path + ": File not found.")
+  (layer_path, layer_path_msg, selection, extras) = get_layer_file_data(img, active_layer_id)
+  if layer_path is None:
+    pdb.gimp_message(layer_path_msg)
     return
 
   pdb.gimp_context_push()
@@ -190,6 +197,30 @@ def image_replace_layer_with_clipboard(img, drawable):
     pdb.gimp_image_undo_group_end(img)
     pdb.gimp_context_pop()
 
+def image_open_layer_file(img, drawable):
+  active_layer_id = pdb.gimp_image_get_active_layer(img)
+  if active_layer_id == -1:
+    pdb.gimp_message("Please select a layer.")
+    return
+
+  (layer_path, layer_path_msg, selection, extras) = get_layer_file_data(img, active_layer_id)
+  if layer_path is None:
+    pdb.gimp_message(layer_path_msg)
+    return
+
+  for img_no in range(0, pdb.gimp_image_list()[0]):
+    img = gimp.image_list()[img_no]
+    name = pdb.gimp_image_get_filename(img)
+    if name is None:
+      continue
+    if os.path.samefile(name, layer_path):
+      gimp.Display(img)
+      pdb.gimp_displays_flush()
+      return
+
+  img = pdb.gimp_file_load(layer_path, layer_path, run_mode = RUN_NONINTERACTIVE)
+  gimp.Display(img)
+  pdb.gimp_displays_flush()
 
 register(
   "image-reload-layer",
@@ -219,5 +250,18 @@ register(
   image_replace_layer_with_clipboard
 )
 
+register(
+  "image-open-layer-file",
+  "Open layer file",
+  "Open the file whose file name is specified by the active layer.",
+  "Johannes",
+  "(C) 2015",
+  "11/04/2015",
+  "<Image>/Layer/Open layer file",
+  "*",
+  [],
+  [],
+  image_open_layer_file
+)
 
 main()

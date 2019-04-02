@@ -168,6 +168,7 @@ def image_reload_layer_rec(img, active_layer_id):
     pdb.gimp_image_delete(loaded_img)
   finally:
     pdb.gimp_image_select_item(img, CHANNEL_OP_REPLACE, sel)
+    pdb.gimp_image_remove_channel(img, sel)
     pdb.gimp_image_undo_group_end(img)
     pdb.gimp_context_pop()
 

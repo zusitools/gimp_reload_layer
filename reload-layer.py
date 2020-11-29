@@ -28,20 +28,20 @@ def copy_layer_data_and_remove_old(image, old_layer, new_layer):
     new_layer.set_lock_alpha(old_layer.get_lock_alpha())
     layer_mask = old_layer.get_mask()
     if layer_mask:
-      (old_width, old_height) = (old_layer.width(), old_layer.height())
-      (new_width, new_height) = (new_layer.width(), new_layer.height())
-      if old_width != new_width or old_height != new_height:
-        # Resize the old layer; the mask will get resized with it.
-        old_layer.resize(new_width, new_height, 0, 0)
-        layer_mask = old_layer.get_mask()
+        (old_width, old_height) = (old_layer.width(), old_layer.height())
+        (new_width, new_height) = (new_layer.width(), new_layer.height())
+        if old_width != new_width or old_height != new_height:
+            # Resize the old layer; the mask will get resized with it.
+            old_layer.resize(new_width, new_height, 0, 0)
+            layer_mask = old_layer.get_mask()
 
-      image.select_item(Gimp.ChannelOps.REPLACE, layer_mask)
-      new_layer_mask = new_layer.create_mask(Gimp.AddMaskType.SELECTION)
-      new_layer.add_mask(new_layer_mask)
+        image.select_item(Gimp.ChannelOps.REPLACE, layer_mask)
+        new_layer_mask = new_layer.create_mask(Gimp.AddMaskType.SELECTION)
+        new_layer.add_mask(new_layer_mask)
 
-      new_layer.set_apply_mask(old_layer.get_apply_mask())
-      new_layer.set_edit_mask(old_layer.get_edit_mask())
-      new_layer.set_show_mask(old_layer.get_show_mask())
+        new_layer.set_apply_mask(old_layer.get_apply_mask())
+        new_layer.set_edit_mask(old_layer.get_edit_mask())
+        new_layer.set_show_mask(old_layer.get_show_mask())
     new_layer.set_mode(old_layer.get_mode())
     new_layer.set_opacity(old_layer.get_opacity())
     new_layer.set_tattoo(old_layer.get_tattoo())
@@ -53,6 +53,7 @@ def copy_layer_data_and_remove_old(image, old_layer, new_layer):
     new_layer.set_name(old_layer_name)
 
     Gimp.displays_flush()
+
 
 def apply_effects(layer, effect_spec):
     # Apply special effects (mirroring).
@@ -69,44 +70,59 @@ def apply_effects(layer, effect_spec):
         layer = layer.transform_flip_simple(Gimp.OrientationType.VERTICAL, True, 0)
     return layer
 
+
 def replace_layer(image, active_layer, pasted_layer, effects):
     """Replaces the layer active_layer by the layer pasted_layer, optionally resizing it to preserve
     aspect ratio and preserving the old layer's settings such as offset, opacity, and layer mask."""
 
     width, height = active_layer.width(), active_layer.height()
     if "rotR" not in effects and "rotL" not in effects:
-      (pasted_width, pasted_height) = (pasted_layer.width(), pasted_layer.height())
+        (pasted_width, pasted_height) = (pasted_layer.width(), pasted_layer.height())
     else:
-      (pasted_height, pasted_width) = (pasted_layer.width(), pasted_layer.height())
-    if (pasted_width == 0 or pasted_height == 0):
-       return
-    calculated_width = int(round(float(height)/pasted_height * pasted_width))
-    calculated_height = int(round(float(width)/pasted_width * pasted_height))
+        (pasted_height, pasted_width) = (pasted_layer.width(), pasted_layer.height())
+    if pasted_width == 0 or pasted_height == 0:
+        return
+    calculated_width = int(round(float(height) / pasted_height * pasted_width))
+    calculated_height = int(round(float(width) / pasted_width * pasted_height))
 
     # Warn the user if the new layer's aspect ratio do not match that of the old layer.
-    if calculated_width != width and calculated_height != height and "stretch" not in effects:
-      label = Gtk.Label(label="The aspect ratio of the clipboard contents does not match the aspect ratio of the currently selected layer."
-        + os.linesep + "Clipboard content size is %dx%d, active layer size is %dx%d." % (pasted_width, pasted_height, width, height))
-      dialog = Gtk.Dialog("New aspect ratio", None, None, modal=True, destroy_with_parent=True)
-      dialog.vbox.pack_start(label, expand=True, fill=True, padding=0)
-      label.show()
-      dialog.add_button("Resize horizontally (new size: %dx%d)" % (calculated_width, height), 1)
-      dialog.add_button("Resize vertically (new size: %dx%d)" % (width, calculated_height), 2)
-      dialog.add_button("Keep dimensions (stretch)", 3)
-      dialog.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
-      dialog.set_default_response(3)
-      response = dialog.run()
-      dialog.destroy()
+    if (
+        calculated_width != width
+        and calculated_height != height
+        and "stretch" not in effects
+    ):
+        label = Gtk.Label(
+            label="The aspect ratio of the clipboard contents does not match the aspect ratio of the currently selected layer."
+            + os.linesep
+            + "Clipboard content size is %dx%d, active layer size is %dx%d."
+            % (pasted_width, pasted_height, width, height)
+        )
+        dialog = Gtk.Dialog(
+            "New aspect ratio", None, None, modal=True, destroy_with_parent=True
+        )
+        dialog.vbox.pack_start(label, expand=True, fill=True, padding=0)
+        label.show()
+        dialog.add_button(
+            "Resize horizontally (new size: %dx%d)" % (calculated_width, height), 1
+        )
+        dialog.add_button(
+            "Resize vertically (new size: %dx%d)" % (width, calculated_height), 2
+        )
+        dialog.add_button("Keep dimensions (stretch)", 3)
+        dialog.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+        dialog.set_default_response(3)
+        response = dialog.run()
+        dialog.destroy()
 
-      if response == 1:
-        width = calculated_width
-      elif response == 2:
-        height = calculated_height
-      elif response == 3:
-        pass
-      else:
-        image.remove_layer(pasted_layer)
-        return
+        if response == 1:
+            width = calculated_width
+        elif response == 2:
+            height = calculated_height
+        elif response == 3:
+            pass
+        else:
+            image.remove_layer(pasted_layer)
+            return
 
     # Insert the new layer above the existing one.
     old_layer_pos = image.get_item_position(active_layer)
@@ -116,131 +132,155 @@ def replace_layer(image, active_layer, pasted_layer, effects):
 
     copy_layer_data_and_remove_old(image, active_layer, pasted_layer)
 
+
 def get_layer_file_data(image, layer):
-  # Try to interpret the layer name as a relative or absolute file path.
-  # Ignore everything after the first '#' or '@' character.
-  match = re.match(r'([^#@]*)(@[^#]*)?(#.*)?', layer.get_name())
-  layer_path = match.group(1).strip()
-  layer_path_msg = ""
-  selection = match.group(2)[1:].strip() if match.group(2) is not None else ""
-  extras = match.group(3) if match.group(3) is not None else ""
+    # Try to interpret the layer name as a relative or absolute file path.
+    # Ignore everything after the first '#' or '@' character.
+    match = re.match(r"([^#@]*)(@[^#]*)?(#.*)?", layer.get_name())
+    layer_path = match.group(1).strip()
+    layer_path_msg = ""
+    selection = match.group(2)[1:].strip() if match.group(2) is not None else ""
+    extras = match.group(3) if match.group(3) is not None else ""
 
-  if not os.path.isabs(layer_path):
-    image_file = image.get_file()
-    if not image_file or not image_file.get_path():
-      layer_path = None
-      layer_path_msg = "Layer name is not an absolute path, and the image has no file name."
-    layer_path = os.path.join(os.path.dirname(image_file.get_path()), layer_path)
+    if not os.path.isabs(layer_path):
+        image_file = image.get_file()
+        if not image_file or not image_file.get_path():
+            layer_path = None
+            layer_path_msg = (
+                "Layer name is not an absolute path, and the image has no file name."
+            )
+        layer_path = os.path.join(os.path.dirname(image_file.get_path()), layer_path)
 
-  if not os.path.isfile(layer_path):
-    layer_path_msg = "{}: File not found".format(layer_path)
-    layer_path = None
+    if not os.path.isfile(layer_path):
+        layer_path_msg = "{}: File not found".format(layer_path)
+        layer_path = None
 
-  return (layer_path, layer_path_msg, selection, extras)
+    return (layer_path, layer_path_msg, selection, extras)
 
 
 def image_reload_layer(procedure, run_mode, image, drawable, args, data):
-  active_layer = image.get_active_layer()
-  if not active_layer:
-    return procedure.new_return_values(Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select a layer."))
+    active_layer = image.get_active_layer()
+    if not active_layer:
+        return procedure.new_return_values(
+            Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select a layer.")
+        )
 
-  Gimp.context_push()
+    Gimp.context_push()
 
-  image.undo_group_start()
-  sel = Gimp.Selection.save(image)
-  Gimp.Selection.none(image)
+    image.undo_group_start()
+    sel = Gimp.Selection.save(image)
+    Gimp.Selection.none(image)
 
-  try:
     try:
-      image_reload_layer_rec(image, active_layer)
-    finally:
-      image.select_item(Gimp.ChannelOps.REPLACE, sel)
-      image.remove_channel(sel)
-      image.undo_group_end()
-      Gimp.context_pop()
-    return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
-  except GLib.Error as e:
-    return procedure.new_return_values(Gimp.PDBStatusType.EXECUTION_ERROR, e)
+        try:
+            image_reload_layer_rec(image, active_layer)
+        finally:
+            image.select_item(Gimp.ChannelOps.REPLACE, sel)
+            image.remove_channel(sel)
+            image.undo_group_end()
+            Gimp.context_pop()
+        return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+    except GLib.Error as e:
+        return procedure.new_return_values(Gimp.PDBStatusType.EXECUTION_ERROR, e)
+
 
 def image_reload_layer_rec(image, active_layer):
-  for c in active_layer.get_children():
-    image_reload_layer_rec(image, c)
+    for c in active_layer.get_children():
+        image_reload_layer_rec(image, c)
 
-  (layer_path, layer_path_msg, selection, extras) = get_layer_file_data(image, active_layer)
-  if not layer_path:
-    raise GLib.Error(layer_path_msg)
+    (layer_path, layer_path_msg, selection, extras) = get_layer_file_data(
+        image, active_layer
+    )
+    if not layer_path:
+        raise GLib.Error(layer_path_msg)
 
-  loaded_image = Gimp.file_load(Gimp.RunMode.NONINTERACTIVE, Gio.File.new_for_path(layer_path))
-  if selection:
-    path = loaded_image.get_vectors_by_name(selection)
-    if not path:
-      loaded_image.delete()
-      raise GLib.Error('"%s": Path not found' % selection)
-    loaded_image.select_item(Gimp.ChannelOps.REPLACE, path)
-  else:
-    Gimp.Selection.none(loaded_image)
-  Gimp.edit_named_copy_visible(loaded_image, "ReloadLayerTemp")
-  new_layer = Gimp.edit_named_paste(active_layer, "ReloadLayerTemp", False)
-  Gimp.floating_sel_to_layer(new_layer)
-  replace_layer(image, active_layer, new_layer, extras)
-  Gimp.buffer_delete("ReloadLayerTemp")
-  loaded_image.delete()
-
-def image_replace_layer_with_clipboard(procedure, run_mode, image, drawable, args, data):
-  active_layer = image.get_active_layer()
-  if not active_layer:
-    return procedure.new_return_values(Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select a layer."))
-
-  split_layer_name = active_layer.get_name().split("#", 1)
-  extras = split_layer_name[1] if len(split_layer_name) > 1 else ""
-
-  Gimp.context_push()
-  Gimp.context_set_interpolation(Gimp.InterpolationType.NOHALO)
-
-  image.undo_group_start()
-  sel = Gimp.Selection.save(image)
-  Gimp.Selection.none(image)
-  try:
-    tmp_image = Gimp.edit_paste_as_new_image()
-    if not tmp_image:  # no data in clipboard
-      return
-    drawable = tmp_image.get_active_drawable()
-    new_layer = Gimp.Layer.new_from_drawable(drawable, image)
-    image.insert_layer(new_layer, None, 0)
+    loaded_image = Gimp.file_load(
+        Gimp.RunMode.NONINTERACTIVE, Gio.File.new_for_path(layer_path)
+    )
+    if selection:
+        path = loaded_image.get_vectors_by_name(selection)
+        if not path:
+            loaded_image.delete()
+            raise GLib.Error('"%s": Path not found' % selection)
+        loaded_image.select_item(Gimp.ChannelOps.REPLACE, path)
+    else:
+        Gimp.Selection.none(loaded_image)
+    Gimp.edit_named_copy_visible(loaded_image, "ReloadLayerTemp")
+    new_layer = Gimp.edit_named_paste(active_layer, "ReloadLayerTemp", False)
+    Gimp.floating_sel_to_layer(new_layer)
     replace_layer(image, active_layer, new_layer, extras)
-    tmp_image.delete()
-  finally:
-    image.select_item(Gimp.ChannelOps.REPLACE, sel)
-    image.undo_group_end()
-    Gimp.context_pop()
+    Gimp.buffer_delete("ReloadLayerTemp")
+    loaded_image.delete()
 
-  return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+
+def image_replace_layer_with_clipboard(
+    procedure, run_mode, image, drawable, args, data
+):
+    active_layer = image.get_active_layer()
+    if not active_layer:
+        return procedure.new_return_values(
+            Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select a layer.")
+        )
+
+    split_layer_name = active_layer.get_name().split("#", 1)
+    extras = split_layer_name[1] if len(split_layer_name) > 1 else ""
+
+    Gimp.context_push()
+    Gimp.context_set_interpolation(Gimp.InterpolationType.NOHALO)
+
+    image.undo_group_start()
+    sel = Gimp.Selection.save(image)
+    Gimp.Selection.none(image)
+    try:
+        tmp_image = Gimp.edit_paste_as_new_image()
+        if not tmp_image:  # no data in clipboard
+            return
+        drawable = tmp_image.get_active_drawable()
+        new_layer = Gimp.Layer.new_from_drawable(drawable, image)
+        image.insert_layer(new_layer, None, 0)
+        replace_layer(image, active_layer, new_layer, extras)
+        tmp_image.delete()
+    finally:
+        image.select_item(Gimp.ChannelOps.REPLACE, sel)
+        image.undo_group_end()
+        Gimp.context_pop()
+
+    return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+
 
 def image_open_layer_file(procedure, run_mode, image, drawable, args, data):
-  active_layer = image.get_active_layer()
-  if not active_layer:
-    return procedure.new_return_values(Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select a layer."))
+    active_layer = image.get_active_layer()
+    if not active_layer:
+        return procedure.new_return_values(
+            Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select a layer.")
+        )
 
-  (layer_path, layer_path_msg, selection, extras) = get_layer_file_data(image, active_layer)
-  if not layer_path:
-    return procedure.new_return_values(Gimp.PDBStatusType.CALLING_ERROR, GLib.Error(layer_path_msg))
+    (layer_path, layer_path_msg, selection, extras) = get_layer_file_data(
+        image, active_layer
+    )
+    if not layer_path:
+        return procedure.new_return_values(
+            Gimp.PDBStatusType.CALLING_ERROR, GLib.Error(layer_path_msg)
+        )
 
-  for image in Gimp.list_images():
-    image_file = image.get_file()
-    if not image_file:
-      continue
-    image_filename = image_file.get_path()
-    if not image_filename:
-      continue
-    if os.path.samefile(image_filename, layer_path):
-      break
-  else:
-    image = Gimp.file_load(Gimp.RunMode.NONINTERACTIVE, Gio.File.new_for_path(layer_path))
-  if image:
-    Gimp.Display.new(image)
-    Gimp.displays_flush()
+    for image in Gimp.list_images():
+        image_file = image.get_file()
+        if not image_file:
+            continue
+        image_filename = image_file.get_path()
+        if not image_filename:
+            continue
+        if os.path.samefile(image_filename, layer_path):
+            break
+    else:
+        image = Gimp.file_load(
+            Gimp.RunMode.NONINTERACTIVE, Gio.File.new_for_path(layer_path)
+        )
+    if image:
+        Gimp.Display.new(image)
+        Gimp.displays_flush()
 
-  return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+    return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
 
 class ReloadLayer(Gimp.PlugIn):

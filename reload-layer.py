@@ -233,8 +233,10 @@ def image_replace_layer_with_clipboard(
     Gimp.Selection.none(image)
     try:
         tmp_image = Gimp.edit_paste_as_new_image()
-        if not tmp_image:  # no data in clipboard
-            return
+        if not tmp_image:
+            return procedure.new_return_values(
+                Gimp.PDBStatusType.EXECUTION_ERROR, GLib.Error("No data in clipboard.")
+            )
         drawable = tmp_image.get_active_drawable()
         new_layer = Gimp.Layer.new_from_drawable(drawable, image)
         image.insert_layer(new_layer, None, 0)

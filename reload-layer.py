@@ -21,15 +21,15 @@ def copy_layer_data_and_remove_old(image, old_layer, new_layer):
     and removes the old layer."""
 
     # Copy layer data.
-    offsets = old_layer.offsets()
+    offsets = old_layer.get_offsets()
     new_layer.set_offsets(offsets.offset_x, offsets.offset_y)
 
     new_layer.set_linked(old_layer.get_linked())
     new_layer.set_lock_alpha(old_layer.get_lock_alpha())
     layer_mask = old_layer.get_mask()
     if layer_mask:
-        (old_width, old_height) = (old_layer.width(), old_layer.height())
-        (new_width, new_height) = (new_layer.width(), new_layer.height())
+        (old_width, old_height) = (old_layer.get_width(), old_layer.get_height())
+        (new_width, new_height) = (new_layer.get_width(), new_layer.get_height())
         if old_width != new_width or old_height != new_height:
             # Resize the old layer; the mask will get resized with it.
             old_layer.resize(new_width, new_height, 0, 0)
@@ -75,11 +75,17 @@ def replace_layer(image, active_layer, pasted_layer, effects):
     """Replaces the layer active_layer by the layer pasted_layer, optionally resizing it to preserve
     aspect ratio and preserving the old layer's settings such as offset, opacity, and layer mask."""
 
-    width, height = active_layer.width(), active_layer.height()
+    width, height = active_layer.get_width(), active_layer.get_height()
     if "rotR" not in effects and "rotL" not in effects:
-        (pasted_width, pasted_height) = (pasted_layer.width(), pasted_layer.height())
+        (pasted_width, pasted_height) = (
+            pasted_layer.get_width(),
+            pasted_layer.get_height(),
+        )
     else:
-        (pasted_height, pasted_width) = (pasted_layer.width(), pasted_layer.height())
+        (pasted_height, pasted_width) = (
+            pasted_layer.get_width(),
+            pasted_layer.get_height(),
+        )
     if pasted_width == 0 or pasted_height == 0:
         return
     calculated_width = int(round(float(height) / pasted_height * pasted_width))

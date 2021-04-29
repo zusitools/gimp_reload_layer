@@ -158,7 +158,9 @@ def get_layer_file_data(image, layer):
     return (layer_path, layer_path_msg, selection, extras)
 
 
-def image_reload_layer(procedure, run_mode, image, drawable, args, data):
+def image_reload_layer(
+    procedure, run_mode, image, num_drawables, drawables, args, data
+):
     active_layer = image.get_active_layer()
     if not active_layer:
         return procedure.new_return_values(
@@ -214,7 +216,7 @@ def image_reload_layer_rec(image, active_layer):
 
 
 def image_replace_layer_with_clipboard(
-    procedure, run_mode, image, drawable, args, data
+    procedure, run_mode, image, num_drawables, drawables, args, data
 ):
     active_layer = image.get_active_layer()
     if not active_layer:
@@ -250,7 +252,9 @@ def image_replace_layer_with_clipboard(
     return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
 
-def image_open_layer_file(procedure, run_mode, image, drawable, args, data):
+def image_open_layer_file(
+    procedure, run_mode, image, num_drawables, drawables, args, data
+):
     active_layer = image.get_active_layer()
     if not active_layer:
         return procedure.new_return_values(

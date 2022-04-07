@@ -214,20 +214,21 @@ def image_reload_layer_rec(image, active_layer):
         loaded_image = Gimp.file_load(
             Gimp.RunMode.NONINTERACTIVE, Gio.File.new_for_path(layer_path)
         )
-    if selection:
-        path = loaded_image.get_vectors_by_name(selection)
-        if not path:
-            loaded_image.delete()
-            raise GLib.Error('"%s": Path not found' % selection)
-        loaded_image.select_item(Gimp.ChannelOps.REPLACE, path)
-    else:
-        Gimp.Selection.none(loaded_image)
-    Gimp.edit_named_copy_visible(loaded_image, "ReloadLayerTemp")
-    new_layer = Gimp.edit_named_paste(active_layer, "ReloadLayerTemp", False)
-    Gimp.floating_sel_to_layer(new_layer)
-    replace_layer(image, active_layer, new_layer, extras)
-    Gimp.buffer_delete("ReloadLayerTemp")
-    loaded_image.delete()
+    try:
+        if selection:
+            path = loaded_image.get_vectors_by_name(selection)
+            if not path:
+                raise GLib.Error('"%s": Path not found' % selection)
+            loaded_image.select_item(Gimp.ChannelOps.REPLACE, path)
+        else:
+            Gimp.Selection.none(loaded_image)
+        Gimp.edit_named_copy_visible(loaded_image, "ReloadLayerTemp")
+        new_layer = Gimp.edit_named_paste(active_layer, "ReloadLayerTemp", False)
+        Gimp.floating_sel_to_layer(new_layer)
+        replace_layer(image, active_layer, new_layer, extras)
+        Gimp.buffer_delete("ReloadLayerTemp")
+    finally:
+        loaded_image.delete()
 
 
 def image_replace_layer_with_clipboard(

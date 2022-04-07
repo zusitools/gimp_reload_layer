@@ -201,9 +201,19 @@ def image_reload_layer_rec(image, active_layer):
     if not layer_path:
         raise GLib.Error(layer_path_msg)
 
-    loaded_image = Gimp.file_load(
-        Gimp.RunMode.NONINTERACTIVE, Gio.File.new_for_path(layer_path)
-    )
+    for loaded_image in Gimp.list_images():
+        loaded_image_file = loaded_image.get_file()
+        if not loaded_image_file:
+            continue
+        loaded_image_filename = loaded_image_file.get_path()
+        if not loaded_image_filename:
+            continue
+        if os.path.samefile(loaded_image_filename, layer_path):
+            break
+    else:
+        loaded_image = Gimp.file_load(
+            Gimp.RunMode.NONINTERACTIVE, Gio.File.new_for_path(layer_path)
+        )
     if selection:
         path = loaded_image.get_vectors_by_name(selection)
         if not path:

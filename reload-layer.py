@@ -24,7 +24,6 @@ def copy_layer_data_and_remove_old(image, old_layer, new_layer):
     offsets = old_layer.get_offsets()
     new_layer.set_offsets(offsets.offset_x, offsets.offset_y)
 
-    new_layer.set_linked(old_layer.get_linked())
     new_layer.set_lock_alpha(old_layer.get_lock_alpha())
     layer_mask = old_layer.get_mask()
     if layer_mask:

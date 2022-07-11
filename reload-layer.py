@@ -308,10 +308,6 @@ def image_open_layer_file(
 class ReloadLayer(Gimp.PlugIn):
     ## GimpPlugIn virtual methods ##
     def do_query_procedures(self):
-        self.set_translation_domain(
-            "gimp30-python", Gio.file_new_for_path(Gimp.locale_directory())
-        )
-
         return [
             "image-reload-layer",
             "image-replace-layer-with-clipboard",

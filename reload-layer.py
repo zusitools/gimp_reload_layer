@@ -166,11 +166,12 @@ def get_layer_file_data(image, layer):
 def image_reload_layer(
     procedure, run_mode, image, num_drawables, drawables, args, data
 ):
-    active_layer = image.get_active_layer()
-    if not active_layer:
+    selected_layers = image.list_selected_layers()
+    if len(selected_layers) != 1:
         return procedure.new_return_values(
-            Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select a layer.")
+            Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select a single layer.")
         )
+    active_layer = selected_layers[0]
 
     Gimp.context_push()
 
@@ -192,8 +193,9 @@ def image_reload_layer(
 
 
 def image_reload_layer_rec(image, active_layer):
-    for c in active_layer.get_children():
-        image_reload_layer_rec(image, c)
+    for c in active_layer.list_children():
+        if "#noreload" not in c.get_name():
+            image_reload_layer_rec(image, c)
 
     (layer_path, layer_path_msg, selection, extras) = get_layer_file_data(
         image, active_layer
@@ -234,11 +236,12 @@ def image_reload_layer_rec(image, active_layer):
 def image_replace_layer_with_clipboard(
     procedure, run_mode, image, num_drawables, drawables, args, data
 ):
-    active_layer = image.get_active_layer()
-    if not active_layer:
+    selected_layers = image.list_selected_layers()
+    if len(selected_layers) != 1:
         return procedure.new_return_values(
-            Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select a layer.")
+            Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select a single layer.")
         )
+    active_layer = selected_layers[0]
 
     split_layer_name = active_layer.get_name().split("#", 1)
     extras = split_layer_name[1] if len(split_layer_name) > 1 else ""
@@ -271,11 +274,12 @@ def image_replace_layer_with_clipboard(
 def image_open_layer_file(
     procedure, run_mode, image, num_drawables, drawables, args, data
 ):
-    active_layer = image.get_active_layer()
-    if not active_layer:
+    selected_layers = image.list_selected_layers()
+    if len(selected_layers) != 1:
         return procedure.new_return_values(
-            Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select a layer.")
+            Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select a single layer.")
         )
+    active_layer = selected_layers[0]
 
     (layer_path, layer_path_msg, selection, extras) = get_layer_file_data(
         image, active_layer
@@ -356,6 +360,7 @@ class ReloadLayer(Gimp.PlugIn):
                 "Open the file whose file name is specified by the active layer.",
                 name,
             )
+            procedure.add_menu_path("<Image>/Layer")
             procedure.set_attribution("Johannes", "Johannes", "2015")
         return procedure
 

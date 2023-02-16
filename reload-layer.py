@@ -258,8 +258,12 @@ def image_replace_layer_with_clipboard(
             return procedure.new_return_values(
                 Gimp.PDBStatusType.EXECUTION_ERROR, GLib.Error("No data in clipboard.")
             )
-        drawable = tmp_image.get_active_drawable()
-        new_layer = Gimp.Layer.new_from_drawable(drawable, image)
+        drawables = tmp_image.get_selected_drawables()
+        if len(drawables) != 1:
+            return procedure.new_return_values(
+                Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select a single layer.")
+            )
+        new_layer = Gimp.Layer.new_from_drawable(drawables[0], image)
         image.insert_layer(new_layer, None, 0)
         replace_layer(image, active_layer, new_layer, extras)
         tmp_image.delete()

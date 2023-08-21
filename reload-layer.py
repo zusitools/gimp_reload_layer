@@ -167,11 +167,10 @@ def image_reload_layer(
     procedure, run_mode, image, num_drawables, drawables, args, data
 ):
     selected_layers = image.list_selected_layers()
-    if len(selected_layers) != 1:
+    if len(selected_layers) == 0:
         return procedure.new_return_values(
-            Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select a single layer.")
+            Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select at least one layer.")
         )
-    active_layer = selected_layers[0]
 
     Gimp.context_push()
 
@@ -181,7 +180,8 @@ def image_reload_layer(
 
     try:
         try:
-            image_reload_layer_rec(image, active_layer)
+            for layer in selected_layers:
+                image_reload_layer_rec(image, layer)
         finally:
             image.select_item(Gimp.ChannelOps.REPLACE, sel)
             image.remove_channel(sel)

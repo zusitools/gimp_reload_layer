@@ -315,6 +315,9 @@ def image_open_layer_file(
 
 class ReloadLayer(Gimp.PlugIn):
     ## GimpPlugIn virtual methods ##
+    def do_set_i18n(self, procname):
+        return False
+
     def do_query_procedures(self):
         return [
             "image-reload-layer",

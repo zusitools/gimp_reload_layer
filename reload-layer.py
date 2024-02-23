@@ -331,6 +331,7 @@ class ReloadLayer(Gimp.PlugIn):
                 self, name, Gimp.PDBProcType.PLUGIN, image_reload_layer, None
             )
             procedure.set_image_types("*")
+            procedure.set_sensitivity_mask(Gimp.ProcedureSensitivityMask.DRAWABLE | Gimp.ProcedureSensitivityMask.DRAWABLES)
             procedure.set_documentation(
                 "Reload active layer",
                 "Reload the active layer (layer name == file name).",
@@ -348,6 +349,7 @@ class ReloadLayer(Gimp.PlugIn):
                 None,
             )
             procedure.set_image_types("*")
+            procedure.set_sensitivity_mask(Gimp.ProcedureSensitivityMask.DRAWABLE | Gimp.ProcedureSensitivityMask.DRAWABLES)
             procedure.set_menu_label("Replace active layer with clipboard contents")
             procedure.set_documentation(
                 "Replace active layer with clipboard contents",
@@ -361,6 +363,7 @@ class ReloadLayer(Gimp.PlugIn):
                 self, name, Gimp.PDBProcType.PLUGIN, image_open_layer_file, None
             )
             procedure.set_image_types("*")
+            procedure.set_sensitivity_mask(Gimp.ProcedureSensitivityMask.DRAWABLE | Gimp.ProcedureSensitivityMask.DRAWABLES)
             procedure.set_menu_label("Open layer file")
             procedure.set_documentation(
                 "Open layer file",

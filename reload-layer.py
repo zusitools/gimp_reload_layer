@@ -166,7 +166,7 @@ def get_layer_file_data(image, layer):
 def image_reload_layer(
     procedure, run_mode, image, num_drawables, drawables, args, data
 ):
-    selected_layers = image.list_selected_layers()
+    selected_layers = image.get_selected_layers()
     if len(selected_layers) == 0:
         return procedure.new_return_values(
             Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select at least one layer.")
@@ -193,7 +193,7 @@ def image_reload_layer(
 
 
 def image_reload_layer_rec(image, active_layer):
-    for c in active_layer.list_children():
+    for c in active_layer.get_children():
         if "#noreload" not in c.get_name():
             image_reload_layer_rec(image, c)
 
@@ -203,7 +203,7 @@ def image_reload_layer_rec(image, active_layer):
     if not layer_path:
         raise GLib.Error(layer_path_msg)
 
-    for loaded_image in Gimp.list_images():
+    for loaded_image in Gimp.get_images():
         loaded_image_file = loaded_image.get_file()
         if not loaded_image_file:
             continue
@@ -236,7 +236,7 @@ def image_reload_layer_rec(image, active_layer):
 def image_replace_layer_with_clipboard(
     procedure, run_mode, image, num_drawables, drawables, args, data
 ):
-    selected_layers = image.list_selected_layers()
+    selected_layers = image.get_selected_layers()
     if len(selected_layers) != 1:
         return procedure.new_return_values(
             Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select a single layer.")
@@ -278,7 +278,7 @@ def image_replace_layer_with_clipboard(
 def image_open_layer_file(
     procedure, run_mode, image, num_drawables, drawables, args, data
 ):
-    selected_layers = image.list_selected_layers()
+    selected_layers = image.get_selected_layers()
     if len(selected_layers) != 1:
         return procedure.new_return_values(
             Gimp.PDBStatusType.CALLING_ERROR, GLib.Error("Please select a single layer.")
@@ -293,8 +293,8 @@ def image_open_layer_file(
             Gimp.PDBStatusType.CALLING_ERROR, GLib.Error(layer_path_msg)
         )
 
-    for image in Gimp.list_images():
-        image_file = image.get_file()
+    for image2 in Gimp.get_images():
+        image_file = image2.get_file()
         if not image_file:
             continue
         image_filename = image_file.get_path()
@@ -303,11 +303,11 @@ def image_open_layer_file(
         if os.path.samefile(image_filename, layer_path):
             break
     else:
-        image = Gimp.file_load(
+        image2 = Gimp.file_load(
             Gimp.RunMode.NONINTERACTIVE, Gio.File.new_for_path(layer_path)
         )
-    if image:
-        Gimp.Display.new(image)
+    if image2:
+        Gimp.Display.new(image2)
         Gimp.displays_flush()
 
     return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())

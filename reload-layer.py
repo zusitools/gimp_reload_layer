@@ -45,6 +45,9 @@ def copy_layer_data_and_remove_old(image, old_layer, new_layer):
     new_layer.set_opacity(old_layer.get_opacity())
     new_layer.set_tattoo(old_layer.get_tattoo())
     new_layer.set_visible(old_layer.get_visible())
+    new_layer.set_blend_space(old_layer.get_blend_space())
+    new_layer.set_composite_space(old_layer.get_composite_space())
+    new_layer.set_composite_mode(old_layer.get_composite_mode())
 
     # Delete the old layer and rename the new one.
     old_layer_name = old_layer.get_name()

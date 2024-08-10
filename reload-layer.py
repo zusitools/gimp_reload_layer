@@ -221,7 +221,7 @@ def image_reload_layer_rec(image, active_layer):
         )
     try:
         if selection:
-            path = loaded_image.get_vectors_by_name(selection)
+            path = loaded_image.get_path_by_name(selection)
             if not path:
                 raise GLib.Error('"%s": Path not found' % selection)
             loaded_image.select_item(Gimp.ChannelOps.REPLACE, path)

@@ -167,7 +167,7 @@ def get_layer_file_data(image, layer):
 
 
 def image_reload_layer(
-    procedure, run_mode, image, num_drawables, drawables, args, data
+    procedure, run_mode, image, drawables, args, data
 ):
     selected_layers = image.get_selected_layers()
     if len(selected_layers) == 0:
@@ -237,7 +237,7 @@ def image_reload_layer_rec(image, active_layer):
 
 
 def image_replace_layer_with_clipboard(
-    procedure, run_mode, image, num_drawables, drawables, args, data
+    procedure, run_mode, image, drawables, args, data
 ):
     selected_layers = image.get_selected_layers()
     if len(selected_layers) != 1:
@@ -279,7 +279,7 @@ def image_replace_layer_with_clipboard(
 
 
 def image_open_layer_file(
-    procedure, run_mode, image, num_drawables, drawables, args, data
+    procedure, run_mode, image, drawables, args, data
 ):
     selected_layers = image.get_selected_layers()
     if len(selected_layers) != 1:
